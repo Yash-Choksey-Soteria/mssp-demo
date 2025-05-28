@@ -1,0 +1,71 @@
+uuid: "00000"
+status: active
+subscription: true
+rule_name: DEMO-Mimikatz_Common_Commands
+description: Mimikatz is a credential theft tool capable of harvesting plaintext Windows account logins and passwords, as well as performing credential-based attacks including 'pass-the-hash' and 'golden ticket' attacks. This detector identifies common Mimikatz command execution.
+
+mdr_portal:
+  overview: This detector uses a regex to identify commandline arguments commonly associated with Mimikatz.
+  normal_behavior: In some situations, use of Mimikatz may be permitted, such as scheduled penetration tests. However, these instances should be rare and confirmed.
+  abnormal_behavior: Adversaries may use Mimikatz to perform a variety of credential harvesting attacks. Most commonly, these attacks wil target the LSASS process.
+  response: Isolate the host to prevent lateral movement or data exfiltration of sensitive credentials and dumps. Investigate and kill the parent process tree. Review the timeline for suspicious processes with crossprocs or remote handles to the LSASS process. Also, review for file creations for suspicious .DMP or .TXT files. Check authentication logs for unusual logins. Advise that any users that have recently logged into asset should reset their password.
+  notes: |-
+
+detector:
+  detection_platform: lc
+  code:
+    respond: |-
+      - action: report
+        metadata:
+          description: Mimikatz is a credential theft tool capable of harvesting plaintext Windows account logins and passwords, as well as performing credential-based attacks including 'pass-the-hash' and 'golden ticket' attacks. This detector identifies common Mimikatz command execution.
+          references:
+            - https://adsecurity.org/?page_id=1821
+            - https://github.com/gentilkiwi/mimikatz
+            - https://adsecurity.org/?p=1640
+          tags:
+            - attack.t1003.001
+            - attack.t1003.002
+            - attack.t1003.003
+            - attack.t1003.004
+            - attack.t1003.005
+            - attack.t1003.006
+            - attack.t1098
+            - attack.t1134.001
+            - attack.t1134.002
+            - attack.t1134.003
+            - attack.t1207
+            - attack.t1550.002
+            - attack.t1550.003
+            - attack.t1558.001
+          falsepositives:
+            - In some situations, use of Mimikatz may be permitted, such as scheduled penetration tests. However, these instances should be rare and confirmed.
+        priority: 3
+        name: 00010-WIN-Mimikatz_Common_Commands
+      - action: task
+        command: history_dump
+    detect: |-
+      events:
+          - NEW_PROCESS
+          - EXISTING_PROCESS
+      rules:
+        - op: is windows
+        - path: event/COMMAND_LINE
+          case sensitive: false
+          re: >-
+            .*(?:CRYPTO\:\:Certificates|KERBEROS\:\:Golden|KERBEROS\:\:PTT|LSADUMP\:\:|PRIVILEGE\:\:Debug|MISC\:\:Skeleton|MISC\:\:MemSSP|SEKURLSA\:\:|TOKEN\:\:Elevate).*
+          op: matches
+      op: and
+
+verifiers:
+  - name: "LC Generic False Event"
+    events: '[{  "event": {    "COMMAND_LINE": "cmd  /c \"Soteria edr test\"",    "FILE_IS_SIGNED": 1,    "FILE_PATH": "C:\\Windows\\system32\\cmd.exe",    "HASH": "b99d61d874728edc0918ca0eb10eab93d381e7367e377406e65963366c874450",    "PARENT": {      "BASE_ADDRESS": 140699560968192,      "COMMAND_LINE": "\"C:\\Windows\\system32\\cmd.exe\" ",      "FILE_IS_SIGNED": 1,      "FILE_PATH": "C:\\Windows\\system32\\cmd.exe",      "HASH": "b99d61d874728edc0918ca0eb10eab93d381e7367e377406e65963366c874450",      "MEMORY_USAGE": 3874816,      "PARENT_ATOM": "403d5b39f6173723f32a170e6230f469",      "PARENT_PROCESS_ID": 5776,      "PROCESS_ID": 460,      "THIS_ATOM": "15a579dac0ff9ab18c956c2f6230f4cb",      "THREADS": 3,      "TIMESTAMP": 1647375563022,      "USER_NAME": "SOTERIA\\verifier"    },    "PARENT_PROCESS_ID": 460,    "PROCESS_ID": 1556  },  "routing": {    "arch": 2,    "did": "11111111-1111-1111-1111-111111111111",    "event_id": "11111111-1111-1111-1111-111111111111",    "event_time": 1647375572631,    "event_type": "NEW_PROCESS",    "ext_ip": "98.162.200.203",    "hostname": "verifier.soteria.lan",    "iid": "11111111-1111-1111-1111-111111111111",    "int_ip": "192.168.255.130",    "moduleid": 2,    "oid": "11111111-1111-1111-1111-111111111111",    "parent": "22222222222222222222222222222222",    "plat": 268435456,    "sid": "11111111-1111-1111-1111-111111111111",    "tags": [],    "this": "33333333333333333333333333333333"  },  "ts": "1647375581000"}]'
+    should_fire: false
+  - name: "LC Mimikatz"
+    events: '[{  "event": {    "COMMAND_LINE": "C:\\WINDOWS\\TEMP\\3904147025.exe sekurlsa::logonpasswords exit",    "FILE_IS_SIGNED": 0,    "FILE_PATH": "C:\\WINDOWS\\TEMP\\3904147025.exe",    "HASH": "61c0810a23580cf492a6ba4f7654566108331e7a4134c968c2d6a05261b2d8a1",    "PARENT": {      "BASE_ADDRESS": 917504,      "COMMAND_LINE": "C:\\WINDOWS\\TEMP\\2699534420.exe",      "FILE_IS_SIGNED": 0,      "FILE_PATH": "C:\\WINDOWS\\TEMP\\2699534420.exe",      "HASH": "927f5bf64c13f65dd34ab4e3e16afe5f30f76638f62b7f3d7275d8997dead008",      "MEMORY_USAGE": 56217600,      "PARENT_ATOM": "7c2c62009726c2ab360a783e63320db8",      "PARENT_PROCESS_ID": 2952,      "PROCESS_ID": 2524,      "THIS_ATOM": "4fd1182f2b8d88d450139b5c63320f0f",      "THREADS": 8,      "TIMESTAMP": 1664225039344,      "USER_NAME": "NT AUTHORITY\\SYSTEM"    },    "PARENT_PROCESS_ID": 2524,    "PROCESS_ID": 3040  },  "routing": {    "arch": 2,    "did": "",    "event_id": "f6087ada-c48d-4012-80be-da0de0ecea90",    "event_time": 1664225042497,    "event_type": "NEW_PROCESS",    "ext_ip": "99.33.123.172",    "hostname": "RexManning-PC.localdomain",    "iid": "71224f3d-73d1-44c8-86be-ec6c85549fda",    "int_ip": "192.168.1.28",    "moduleid": 2,    "oid": "636621b4-6f74-4e01-b820-c82f3d8d4a09",    "parent": "4fd1182f2b8d88d450139b5c63320f0f",    "plat": 268435456,    "sid": "c6bddc10-46bf-4a6d-9d05-f5a798efcffa",    "tags": [      "exempt",      "high risk"    ],    "this": "140a2c8dd647870fee29c49c63320f12"  },  "ts": "2022-09-26 20:44:02"}]'
+    should_fire: true
+  - name: "CB Mimikatz"
+    events: '[{  "event": {    "COMMAND_LINE": "C:\\WINDOWS\\TEMP\\2425228473.exe sekurlsa::logonpasswords exit",    "FILE_IS_SIGNED": 0,    "FILE_PATH": "c:\\windows\\temp\\2425228473.exe",    "HASH": "29efd64dd3c7fe1e2b022b7ad73a1ba5",    "PARENT": {      "COMMAND_LINE": "C:\\WINDOWS\\TEMP\\4137536390.exe",      "FILE_IS_SIGNED": 0,      "FILE_PATH": "c:\\windows\\temp\\4137536390.exe",      "HASH": "a39a08513377371a4405fac1002b52c3",      "PROCESS_ID": 8728    },    "PARENT_PROCESS_ID": 8728,    "PROCESS_ID": 5336,    "USER_NAME": "NT AUTHORITY\\SYSTEM",    "original": {      "action": "ACTION_CREATE_PROCESS",      "backend_timestamp": "2022-09-27 02:18:04 +0000 UTC",      "childproc_guid": "NKZFDWEM-0680d7a1-000014d8-00000000-1d8d2170dc444a6",      "childproc_hash": [        "29efd64dd3c7fe1e2b022b7ad73a1ba5",        "61c0810a23580cf492a6ba4f7654566108331e7a4134c968c2d6a05261b2d8a1"      ],      "childproc_name": "c:\\windows\\temp\\2425228473.exe",      "childproc_pid": 5336,      "childproc_publisher": [        {          "state": "FILE_SIGNATURE_STATE_NOT_SIGNED"        }      ],      "childproc_reputation": "REP_SUSPECT_MALWARE",      "childproc_username": "NT AUTHORITY\\SYSTEM",      "device_external_ip": "99.33.123.172",      "device_group": "",      "device_id": "109107105",      "device_name": "RexManning-PC",      "device_os": "WINDOWS",      "device_timestamp": "2022-09-27 02:15:46.4661421 +0000 UTC",      "event_origin": "EDR",      "org_key": "NKZFDWEM",      "parent_cmdline": "\"C:\\Program Files (x86)\\FourCore\\Agent-v1.0\\agent.exe\"",      "parent_guid": "NKZFDWEM-0680d7a1-00000974-00000000-1d8d21679fb75eb",      "parent_hash": [        "3ef0035f02dd780e39839338f94b28a9",        "44b80428a69384919b003969cc2d3ca0c38b843469b820c4cc0aec28452bf9a9"      ],      "parent_path": "c:\\program files (x86)\\fourcore\\agent-v1.0\\agent.exe",      "parent_pid": 2420,      "parent_reputation": "REP_NOT_LISTED",      "process_cmdline": "C:\\WINDOWS\\TEMP\\4137536390.exe",      "process_guid": "NKZFDWEM-0680d7a1-00002218-00000000-1d8d2170bcb27a1",      "process_hash": [        "a39a08513377371a4405fac1002b52c3",        "11417acdafd2559c0e05e3e5358ab81ea3af647637cbad46edf7d70382ba03fc"      ],      "process_path": "c:\\windows\\temp\\4137536390.exe",      "process_pid": 8728,      "process_publisher": [        {          "state": "FILE_SIGNATURE_STATE_NOT_SIGNED"        }      ],      "process_reputation": "REP_NOT_LISTED",      "process_terminated": false,      "process_username": "NT AUTHORITY\\SYSTEM",      "schema": 1,      "sensor_action": "ACTION_ALLOW",      "target_cmdline": "C:\\WINDOWS\\TEMP\\2425228473.exe sekurlsa::logonpasswords exit",      "type": "endpoint.event.procstart"    }  },  "routing": {    "arch": 9,    "did": "",    "event_id": "1f1ceb00-194e-4114-a85f-5b4d8744cbc7",    "event_time": 1664244946466,    "event_type": "NEW_PROCESS",    "ext_ip": "internal",    "hostname": "RexManning-PC",    "iid": "de99938e-9f74-4b65-9393-e642289ee9b0",    "int_ip": "",    "moduleid": 6,    "oid": "636621b4-6f74-4e01-b820-c82f3d8d4a09",    "parent": "931f65ec6208930cf92a8bd563325ccf",    "plat": 3221225472,    "sid": "7434b0ae-f7e6-46b2-a51f-2968f74f3e32",    "tags": [      "carbon black sensors"    ],    "this": "ee130e1ba7a22b8e783041bb63325cd2"  },  "ts": "2022-09-27 02:15:46"}]'
+    should_fire: true
+  - name: "MSDE Mimikatz"
+    events: '[{  "event": {    "COMMAND_LINE": "1132795180.exe sekurlsa::logonpasswords exit",    "FILE_PATH": "C:\\Windows\\Temp\\1132795180.exe",    "HASH": "61c0810a23580cf492a6ba4f7654566108331e7a4134c968c2d6a05261b2d8a1",    "PARENT": {      "COMMAND_LINE": "3515211426.exe",      "FILE_PATH": "c:\\windows\\temp\\3515211426.exe",      "HASH": "0e2c8a47178579bda973ee89a95fe8a3147e74443dd9fa2050fec6b83fd8d627",      "PROCESS_ID": 3188,      "USER_NAME": "nt authority\\system"    },    "PARENT_PROCESS_ID": 3188,    "PROCESS_ID": 7188,    "USER_NAME": "nt authority\\system",    "original": {      "AccountDomain": "nt authority",      "AccountName": "system",      "AccountObjectId": null,      "AccountSid": "S-1-5-18",      "AccountUpn": null,      "ActionType": "ProcessCreated",      "AdditionalFields": null,      "AppGuardContainerId": "",      "DeviceId": "7866cc675e0ad15a49b1a2f6a27debf21c6e7265",      "DeviceName": "rexmanning-pc",      "FileName": "1132795180.exe",      "FileSize": 1355264,      "FolderPath": "C:\\Windows\\Temp\\1132795180.exe",      "InitiatingProcessAccountDomain": "nt authority",      "InitiatingProcessAccountName": "system",      "InitiatingProcessAccountObjectId": null,      "InitiatingProcessAccountSid": "S-1-5-18",      "InitiatingProcessAccountUpn": null,      "InitiatingProcessCommandLine": "3515211426.exe",      "InitiatingProcessCreationTime": "2022-09-27T01:54:55.0419289Z",      "InitiatingProcessFileName": "3515211426.exe",      "InitiatingProcessFileSize": 11003904,      "InitiatingProcessFolderPath": "c:\\windows\\temp\\3515211426.exe",      "InitiatingProcessId": 3188,      "InitiatingProcessIntegrityLevel": "System",      "InitiatingProcessLogonId": 999,      "InitiatingProcessMD5": "bdd8bd64927eba633faa36a135c7786c",      "InitiatingProcessParentCreationTime": "2022-09-27T01:53:17.4558492Z",      "InitiatingProcessParentFileName": "agent.exe",      "InitiatingProcessParentId": 8360,      "InitiatingProcessSHA1": "0d64cd09dc324be324bf4a623cdab2eed4d6d732",      "InitiatingProcessSHA256": "0e2c8a47178579bda973ee89a95fe8a3147e74443dd9fa2050fec6b83fd8d627",      "InitiatingProcessSignatureStatus": "Unsigned",      "InitiatingProcessSignerType": "Unknown",      "InitiatingProcessTokenElevation": "TokenElevationTypeDefault",      "InitiatingProcessVersionInfoCompanyName": null,      "InitiatingProcessVersionInfoFileDescription": null,      "InitiatingProcessVersionInfoInternalFileName": null,      "InitiatingProcessVersionInfoOriginalFileName": null,      "InitiatingProcessVersionInfoProductName": null,      "InitiatingProcessVersionInfoProductVersion": null,      "LogonId": 999,      "MD5": "29efd64dd3c7fe1e2b022b7ad73a1ba5",      "MachineGroup": null,      "ProcessCommandLine": "1132795180.exe sekurlsa::logonpasswords exit",      "ProcessCreationTime": "2022-09-27T01:54:58.4662482Z",      "ProcessId": 7188,      "ProcessIntegrityLevel": "System",      "ProcessTokenElevation": "TokenElevationTypeDefault",      "ProcessVersionInfoCompanyName": "gentilkiwi (Benjamin DELPY)",      "ProcessVersionInfoFileDescription": "mimikatz for Windows",      "ProcessVersionInfoInternalFileName": "mimikatz",      "ProcessVersionInfoOriginalFileName": "mimikatz.exe",      "ProcessVersionInfoProductName": "mimikatz",      "ProcessVersionInfoProductVersion": "2.2.0.0",      "ReportId": 1822,      "SHA1": "e3b6ea8c46fa831cec6f235a5cf48b38a4ae8d69",      "SHA256": "61c0810a23580cf492a6ba4f7654566108331e7a4134c968c2d6a05261b2d8a1",      "Timestamp": "2022-09-27T01:54:58.5333203Z"    }  },  "routing": {    "arch": 9,    "did": "",    "event_id": "571dedca-df7a-4cc5-830a-7c77c04cb2e5",    "event_time": 1664243698466,    "event_type": "NEW_PROCESS",    "ext_ip": "internal",    "hostname": "rexmanning-pc",    "iid": "3eabebc9-c6db-44b8-9758-cc446680f5da",    "int_ip": "",    "moduleid": 6,    "oid": "636621b4-6f74-4e01-b820-c82f3d8d4a09",    "parent": "56ecffb4d911cd18f6fa16fc633257ef",    "plat": 67108864,    "sid": "2e7c9851-b23d-4ca5-97d7-c671a4f74dc4",    "tags": [      "ms defender"    ],    "this": "a90cce6ede696992aa1a6429633257f2"  },  "ts": "2022-09-27 01:54:58"}]'
+    should_fire: true

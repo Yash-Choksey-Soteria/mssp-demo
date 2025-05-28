@@ -1,0 +1,13 @@
+detect:
+  event: WEL
+  op: and
+  rules:
+    - op: is
+      path: event/EVENT/System/Channel
+      value: Microsoft-Windows-Windows Defender/Operational
+    - op: is
+      path: event/EVENT/System/EventID
+      value: '1006'
+respond:
+  - action: report
+    name: windows-defender-malware-detected
